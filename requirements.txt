@@ -1,7 +1,0 @@
-uvicorn==0.22.0
-pydantic
-fastapi
-loguru
-jwcrypto
-boto3
-redis[hiredis]
