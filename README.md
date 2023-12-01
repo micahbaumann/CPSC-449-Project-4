@@ -5,7 +5,7 @@
    ```bash
    . $HOME/.venv/bin/activate
    ```
-2. Run the `run.sh`` in the main directory
+2. Run the `run.sh` in the main directory
    ```bash
    sh run.sh
    ```
