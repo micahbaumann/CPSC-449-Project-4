@@ -58,3 +58,22 @@ def example(studentid: int,
 
     return {"message" : "Unsubscription successful"}
 
+@app.get("/subscriptions/{student_id}")
+def get_subscriptions(student_id: int, r = Depends(get_redis)):
+    pattern = f'subscription:{student_id}*'
+    subscriptions = []
+
+    cursor = '0'
+    while cursor != 0:
+        cursor, keys = r.scan(cursor=cursor, match=pattern)  
+        for key in keys:
+            subscription_data = r.hgetall(key)
+            subscriptions.append(subscription_data)
+        
+        if cursor == 0:
+            break
+        cursor = int(cursor)
+
+    return {"subscriptions": subscriptions}
+
+
