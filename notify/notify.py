@@ -3,7 +3,11 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 from typing import Annotated
 import redis
+import boto3
 
+dynamo_db = boto3.resource('dynamodb', endpoint_url="http://localhost:5500")
+
+classes_table = dynamo_db.Table('Classes')
 class Settings(BaseSettings, env_file="users/.env", extra="ignore"):
     logging_config: str
 
@@ -62,18 +66,34 @@ def example(studentid: int,
 def get_subscriptions(student_id: int, r = Depends(get_redis)):
     pattern = f'subscription:{student_id}*'
     subscriptions = []
-
+    subscribed_courses=[]
     cursor = '0'
     while cursor != 0:
         cursor, keys = r.scan(cursor=cursor, match=pattern)  
         for key in keys:
             subscription_data = r.hgetall(key)
-            subscriptions.append(subscription_data)
+            subscriptions.append(subscription_data.get(b'classid').decode())
         
         if cursor == 0:
             break
         cursor = int(cursor)
 
-    return {"subscriptions": subscriptions}
+        
+    for class_id in subscriptions:
+        response = classes_table.get_item(
+            Key={
+                "ClassID": int(class_id)
+            }
+    )
+    
+        item = response.get("Item")
+        if item:
+            class_name = item.get("ClassName")
+            if class_name:
+                subscribed_courses.append(class_name)
+
+
+
+    return {"subscriptions": subscribed_courses}
 
 
