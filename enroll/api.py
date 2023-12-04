@@ -13,35 +13,13 @@ from boto3.dynamodb.conditions import Key, Attr
 
 KRAKEND_PORT = "5400"
 
-# class RabbitMQ:
-#     def __enter__(self):
-#         # Connect to RabbitMQ
-#         self.connection = pika.BlockingConnection(
-#             pika.ConnectionParameters(host='localhost')
-#         )
-#         self.channel = self.connection.channel()
-#         self.channel.exchange_declare(exchange='notify', exchange_type='fanout')
-#         return self
-    
-#     def __exit__(self, exc_type, exc_value, traceback):
-#         self.connection.close()
-
 class RabbitMQ:
     def __init__(self):
-        # self.connection = None
-        # self.channel = None
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(host='localhost')
         )
         self.channel = self.connection.channel()
         self.channel.exchange_declare(exchange='notify', exchange_type='fanout')
-
-    # def connect(self):
-    #     self.connection = pika.BlockingConnection(
-    #         pika.ConnectionParameters(host='localhost')
-    #     )
-    #     self.channel = self.connection.channel()
-    #     self.channel.exchange_declare(exchange='notify', exchange_type='fanout')
 
     def close(self):
         self.connection.close()
@@ -628,7 +606,7 @@ def view_dropped_students(instructorid: int, classid: int, username: str, email:
     return {"Dropped Students": dropped_students}
 
 @app.delete("/drop/{instructorid}/{classid}/{studentid}/{username}/{email}")
-def drop_student_administratively(instructorid: int, classid: int, studentid: int, username: str, email: str, r = Depends(get_redis)):
+def drop_student_administratively(instructorid: int, classid: int, studentid: int, username: str, email: str, r = Depends(get_redis), mq = Depends(get_mq)):
     """API to drop a student from a class.
     
     Args:
@@ -685,7 +663,7 @@ def drop_student_administratively(instructorid: int, classid: int, studentid: in
             "uid": next_on_waitlist,
             "class": classid
         }
-        # channel.basic_publish(exchange='notify', routing_key='', body=json.dumps(mq_msg))
+        mq.basic_publish(exchange='notify', routing_key='', body=json.dumps(mq_msg))
     return {"message": f"Student {studentid} has been administratively dropped from class {classid} by instructor {instructorid}"}
 
 
