@@ -2,6 +2,8 @@ import contextlib
 import requests
 import redis
 import boto3
+import pika
+import json
 
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from pydantic_settings import BaseSettings
@@ -10,6 +12,39 @@ from botocore.exceptions import ClientError
 from boto3.dynamodb.conditions import Key, Attr
 
 KRAKEND_PORT = "5400"
+
+# class RabbitMQ:
+#     def __enter__(self):
+#         # Connect to RabbitMQ
+#         self.connection = pika.BlockingConnection(
+#             pika.ConnectionParameters(host='localhost')
+#         )
+#         self.channel = self.connection.channel()
+#         self.channel.exchange_declare(exchange='notify', exchange_type='fanout')
+#         return self
+    
+#     def __exit__(self, exc_type, exc_value, traceback):
+#         self.connection.close()
+
+class RabbitMQ:
+    def __init__(self):
+        # self.connection = None
+        # self.channel = None
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(host='localhost')
+        )
+        self.channel = self.connection.channel()
+        self.channel.exchange_declare(exchange='notify', exchange_type='fanout')
+
+    # def connect(self):
+    #     self.connection = pika.BlockingConnection(
+    #         pika.ConnectionParameters(host='localhost')
+    #     )
+    #     self.channel = self.connection.channel()
+    #     self.channel.exchange_declare(exchange='notify', exchange_type='fanout')
+
+    def close(self):
+        self.connection.close()
 
 # start dynamo db
 dynamo_db = boto3.resource('dynamodb', endpoint_url="http://localhost:5500")
@@ -24,6 +59,18 @@ class Settings(BaseSettings, env_file="enroll/.env", extra="ignore"):
 
 def get_redis():
     yield redis.Redis()
+
+# def get_mq():
+#     with RabbitMQ as mq:
+#         yield mq
+
+def get_mq():
+    rabbitmq = RabbitMQ()
+    # rabbitmq.connect()
+    try:
+        yield rabbitmq.channel
+    finally:
+        rabbitmq.close()
 
 settings = Settings()
 app = FastAPI()
@@ -392,7 +439,7 @@ def enroll_student_in_class(studentid: int, classid: int, username: str, email: 
 
 
 @app.delete("/enrollmentdrop/{studentid}/{classid}/{username}/{email}")
-def drop_student_from_class(studentid: int, classid: int, username: str, email: str, r = Depends(get_redis)):
+def drop_student_from_class(studentid: int, classid: int, username: str, email: str, r = Depends(get_redis), mq = Depends(get_mq)):
     """API to drop a class.
     
     Args:
@@ -438,6 +485,14 @@ def drop_student_from_class(studentid: int, classid: int, username: str, email: 
                 new_response = retrieve_enrollment_record_id(next_on_waitlist, classid)
                 new_updated_status = update_enrollment_status(new_response, new_status)
                 updated_current_enrollment = update_current_enrollment(classid, increment=True)
+
+                # Add to MQ
+                mq_msg = {
+                    "action": "enrolled",
+                    "uid": next_on_waitlist,
+                    "class": classid
+                }
+                mq.basic_publish(exchange='notify', routing_key='', body=json.dumps(mq_msg))
             
             return {
                 "message": "Class dropped updated successfully",
@@ -623,6 +678,14 @@ def drop_student_administratively(instructorid: int, classid: int, studentid: in
         new_response = retrieve_enrollment_record_id(next_on_waitlist, classid)
         new_updated_status = update_enrollment_status(new_response, new_status)
         updated_current_enrollment = update_current_enrollment(classid, increment=True)
+
+        # Add to MQ
+        mq_msg = {
+            "action": "enrolled",
+            "uid": next_on_waitlist,
+            "class": classid
+        }
+        # channel.basic_publish(exchange='notify', routing_key='', body=json.dumps(mq_msg))
     return {"message": f"Student {studentid} has been administratively dropped from class {classid} by instructor {instructorid}"}
 
 
