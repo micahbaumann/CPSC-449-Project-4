@@ -4,6 +4,11 @@ from pydantic_settings import BaseSettings
 from typing import Annotated
 import redis
 import boto3
+import pika
+import sys
+import json
+import smtplib
+from email.message import EmailMessage
 
 dynamo_db = boto3.resource('dynamodb', endpoint_url="http://localhost:5500")
 
@@ -15,6 +20,17 @@ app = FastAPI()
 
 def get_redis():
     yield redis.Redis()
+
+def produce_enrollment_notification(message):
+
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    channel = connection.channel()
+
+    channel.exchange_declare(exchange='notis', exchange_type='fanout')
+
+    channel.basic_publish(exchange='notis', routing_key='', body=json.dumps(message))
+    print(f" [x] Sent {message} to consumer")
+    connection.close()
 
 # Example Endpoint
 @app.get("/example/{ex}")
@@ -95,5 +111,17 @@ def get_subscriptions(student_id: int, r = Depends(get_redis)):
 
 
     return {"subscriptions": subscribed_courses}
+
+@app.get("/dummyEnroll")
+def enroll_student_in_class(r = Depends(get_redis)):
+    studentid = 1
+    classid = 1
+    subscription_key = f"subscription:{studentid}{classid}"
+    #TO DO
+    #Check if subscription key even exists
+    subscription_info = r.hgetall(subscription_key)
+    stringified_subscription_info = {str(key, 'utf-8'): str(value, 'utf-8') for key, value in subscription_info.items()}
+    produce_enrollment_notification(stringified_subscription_info)
+    return {}
 
 
