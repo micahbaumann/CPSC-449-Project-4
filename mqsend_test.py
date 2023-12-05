@@ -6,13 +6,13 @@ connection = pika.BlockingConnection(
     pika.ConnectionParameters(host='localhost'))
 channel = connection.channel()
 
-channel.exchange_declare(exchange='notification', exchange_type='fanout')
+channel.exchange_declare(exchange='notify', exchange_type='fanout')
 
 mq_msg = {
     "action": "enrolled",
-    "uid": 12345,
-    "class": 12
+    "uid": 1,
+    "class": 1
 }
-channel.basic_publish(exchange='notification', routing_key='hello', body=json.dumps(mq_msg))#'Hello World!')
+channel.basic_publish(exchange='notify', routing_key='', body=json.dumps(mq_msg))
 print(" [x] Sent 'Hello World!'")
 connection.close()
