@@ -1,9 +1,12 @@
 import contextlib
+from datetime import datetime 
+import json
+from fastapi.responses import JSONResponse
 import requests
 import redis
 import boto3
 
-from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi import FastAPI, Depends, HTTPException, Response, status, Request
 from pydantic_settings import BaseSettings
 from pydantic import BaseModel
 from botocore.exceptions import ClientError
@@ -503,7 +506,7 @@ def remove_student_from_waitlist(studentid: int, classid: int, username: str, em
     return {"Element removed": studentid}
 
 @app.get("/waitlist/{studentid}/{classid}/{username}/{email}")
-def view_waitlist_position(studentid: int, classid: int, username: str, email: str, r = Depends(get_redis)):
+def view_waitlist_position(studentid: int, classid: int, username: str, email: str,request:Request, r = Depends(get_redis)):
     """API to view a student's position on the waitlist.
 
     Args:
@@ -514,7 +517,49 @@ def view_waitlist_position(studentid: int, classid: int, username: str, email: s
         A dictionary with a message indicating the student's position on the waitlist.
     """
     check_user(studentid, username, email)
+
+    redisCacheKey = f"waitlist_{classid}"
+    cachedData = r.get(redisCacheKey)
+    print(f'Cached Data ${cachedData}')
+
+    if cachedData:
+        cachedData = json.loads(cachedData)
+        print(cachedData)
+        lastModifiedTime = datetime.fromtimestamp(cachedData['last_modified'])
+        print(lastModifiedTime)
+        modifiedSince = request.headers.get('If-Modified-Since')
+        print(f'modified since ${modifiedSince}')  
+        if modifiedSince:
+            modifiedSinceTime = datetime.strptime(modifiedSince, '%a, %d %b %Y %H:%M:%S GMT')
+            print(modifiedSinceTime)
+            if lastModifiedTime <= modifiedSinceTime:
+                return Response(content=json.dumps(cachedData['data']), status_code=304)
+
+
     position = r.lpos(f"waitClassID_{classid}", studentid)
+
+    if position is not None:
+        message = f"Student {studentid} is on the waitlist for class {classid} in position {position}"
+    else:
+        message = f"Student {studentid} is not on the waitlist for class {classid}"
+        raise HTTPException(
+            status_code=404,
+            detail=message,
+        )
+    
+    cacheValue = json.dumps({'data':position,'last_modified':datetime.utcnow().timestamp()})
+    print(f'cached Value ${cacheValue}')  
+    response = JSONResponse(content={message: position})
+    response.headers["If-Modified-Since"] = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+    # Cache the response
+    r.set(redisCacheKey, cacheValue)
+
+    return response
+
+
+
+    '''position = r.lpos(f"waitClassID_{classid}", studentid)
     
     if position:
         message = f"Student {studentid} is on the waitlist for class {classid} in position"
@@ -524,7 +569,23 @@ def view_waitlist_position(studentid: int, classid: int, username: str, email: s
             status_code=404,
             detail=message,
         )
-    return {message: position}
+    return {message: position}'''
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
 ### Instructor related endpoints
 @app.get("/enrolled/{instructorid}/{classid}/{username}/{email}")
