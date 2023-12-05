@@ -5,3 +5,6 @@ enroll: uvicorn --port $PORT enroll.api:app --reload
 krakend: echo krakend.json | entr -nrz krakend run --port $PORT --config krakend.json
 dynamodb_local: java -Djava.library.path=./bin/DynamoDBLocal_lib -jar ./bin/DynamoDBLocal.jar -sharedDb -port $PORT
 notify: uvicorn --port $PORT notify.notify:app --reload
+mail_server: python -m aiosmtpd -n -d
+email_consumer_process: python email_consumer_process.py
+webhook_consumer_process: python webhook_consumer_process.py

@@ -44,7 +44,7 @@ def example(studentid: int,
             callback_header : Annotated[str | None, Header(convert_underscores=False)] = "None",
             r = Depends(get_redis)):
 
-    subscription_key = f"subscription:{studentid}{classid}"
+    subscription_key = f"subscription:{studentid}_{classid}"
     
     r.hset(subscription_key,
            mapping={
@@ -67,7 +67,7 @@ def example(studentid: int,
             callback_header : Annotated[str | None, Header(convert_underscores=False)] = "None",
             r = Depends(get_redis)):
 
-    subscription_key = f"subscription:{studentid}{classid}"
+    subscription_key = f"subscription:{studentid}_{classid}"
     
     all_keys = list(r.hgetall(subscription_key).keys())
     r.hdel(subscription_key, *all_keys)
@@ -80,7 +80,7 @@ def example(studentid: int,
 
 @app.get("/subscriptions/{student_id}")
 def get_subscriptions(student_id: int, r = Depends(get_redis)):
-    pattern = f'subscription:{student_id}*'
+    pattern = f'subscription:{student_id}_*'
     subscriptions = []
     subscribed_courses=[]
     cursor = '0'
@@ -116,7 +116,7 @@ def get_subscriptions(student_id: int, r = Depends(get_redis)):
 def enroll_student_in_class(r = Depends(get_redis)):
     studentid = 1
     classid = 1
-    subscription_key = f"subscription:{studentid}{classid}"
+    subscription_key = f"subscription:{studentid}_{classid}"
     #TO DO
     #Check if subscription key even exists
     subscription_info = r.hgetall(subscription_key)
