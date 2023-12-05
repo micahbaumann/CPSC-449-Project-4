@@ -550,11 +550,22 @@ def view_waitlist_position(studentid: int, classid: int, username: str, email: s
         A dictionary with a message indicating the student's position on the waitlist.
     """
     check_user(studentid, username, email)
+    '''this is the cache key which has data in the format 
+    waitlist_4_33
+    {
+    "data":"1" //where 1 is the postion
+    "last_modified:"1701836448.647673"
+    }
+    
 
-    redisCacheKey = f"waitlist_{classid}"
+
+    '''
+    
+    redisCacheKey = f"waitlist_{classid}_{studentid}"
     cachedData = r.get(redisCacheKey)
     print(f'Cached Data ${cachedData}')
 
+    #if we find cached data lastModified is earlier that modifiedsince time we give 304
     if cachedData:
         cachedData = json.loads(cachedData)
         print(cachedData)
@@ -568,7 +579,7 @@ def view_waitlist_position(studentid: int, classid: int, username: str, email: s
             if lastModifiedTime <= modifiedSinceTime:
                 return Response(content=json.dumps(cachedData['data']), status_code=304)
 
-
+    #else we find the lastest position in waitClassID_{classid} for that student and store it in cache 
     position = r.lpos(f"waitClassID_{classid}", studentid)
 
     if position is not None:
@@ -590,7 +601,7 @@ def view_waitlist_position(studentid: int, classid: int, username: str, email: s
 
     return response
 
-
+    #What in scenerios where while refreshing suppose there was a change in position , cache needs to be checked if it exists and updated . 
 
     '''position = r.lpos(f"waitClassID_{classid}", studentid)
     
