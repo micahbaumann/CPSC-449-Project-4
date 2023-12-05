@@ -413,14 +413,8 @@
                 "input_headers":[
                     "Authorization"
                 ]
-            }
-
-
-
-
-
-
-            ,{
+            },
+            {
                 "endpoint": "/user/register",
                 "method": "POST",
                 "output_encoding": "no-op",
@@ -515,6 +509,70 @@
                         "operation_debug": true
                     }
                 }
+            },
+            {
+                "endpoint": "/student/subscribe/{studentid}/{classid}",
+                "input_headers": [
+                    "email_header",
+                    "callback_header"
+                ],
+                "method": "GET",
+                "output_encoding": "no-op",
+                "backend": [
+                {
+                    "url_pattern": "/subscribe/{studentid}/{classid}",
+                    "method": "GET",
+                    "host": [
+                        "http://localhost:5600"
+                    ],
+                    "encoding": "no-op",
+                    "extra_config": {
+                        "backend/http": {
+                            "return_error_details": "backend_alias"
+                        }
+                    }
+                }
+                ]
+            },
+            {
+                "endpoint": "/student/unsubscribe/{studentid}/{classid}",
+                "method": "GET",
+                "output_encoding": "no-op",
+                "backend": [
+                {
+                    "url_pattern": "/unsubscribe/{studentid}/{classid}",
+                    "method": "GET",
+                    "host": [
+                        "http://localhost:5600"
+                    ],
+                    "encoding": "no-op",
+                    "extra_config": {
+                        "backend/http": {
+                            "return_error_details": "backend_alias"
+                        }
+                    }
+                }
+                ]
+            },
+            {
+                "endpoint": "/student/subscriptions/{student_id}",
+                "method": "GET",
+                "output_encoding": "no-op",
+                "backend": [
+                {
+                    "url_pattern": "/subscriptions/{student_id}",
+                    "method": "GET",
+                    "host": [
+                        "http://localhost:5600"
+                    ],
+                    "encoding": "no-op",
+                    "extra_config": {
+                        "backend/http": {
+                            "return_error_details": "backend_alias"
+                        }
+                    }
+                }
+                ]
             }
 
 
