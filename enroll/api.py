@@ -1,5 +1,5 @@
 import contextlib
-from datetime import datetime 
+from datetime import datetime, timedelta 
 import json
 from fastapi.responses import JSONResponse
 import requests
@@ -285,6 +285,28 @@ def add_to_waitlist(class_id: int, student_id: int, r):
         )
     
 
+
+
+def update_cache_if_exists(classid :int,r):
+    cache_key = f"waitlist_{classid}"
+    if r.exists(cache_key):
+        byte_waitlist = r.lrange(f"waitClassID_{classid}", 0, -1)
+        waitlist = [student_id.decode('utf-8') for student_id in byte_waitlist]
+        cache_value = json.dumps({'data': waitlist, 'last_modified': datetime.utcnow().timestamp()})
+        r.set(cache_key, cache_value)
+        print("Waitlist Updated ")
+        return True
+    else:
+        return False
+
+
+
+
+
+
+
+
+
 ### Student related endpoints
 @app.get("/list")
 def list_open_classes(r = Depends(get_redis)):
@@ -459,6 +481,7 @@ def drop_student_from_class(studentid: int, classid: int, username: str, email: 
         updated_current_enrollment = update_current_enrollment(classid, increment=False)
         if updated_current_enrollment:
             next_on_waitlist = r.lpop(f"waitClassID_{classid}")
+            update_cache_if_exists(classid,r) 
             if next_on_waitlist is not None:
                 # Convert the retrieved string to an integer
                 next_on_waitlist = int(next_on_waitlist)
@@ -530,12 +553,13 @@ def remove_student_from_waitlist(studentid: int, classid: int, username: str, em
             )
         
         exists = r.lrem(f"waitClassID_{classid}", 0, studentid)
+        
         if exists == 0:
             raise HTTPException(
                 status_code=400,
                 detail={"Error": "No such student found in the given class on the waitlist"}
             )
-        
+    update_cache_if_exists(classid,r)    
     return {"Element removed": studentid}
 
 @app.get("/waitlist/{studentid}/{classid}/{username}/{email}")
@@ -550,40 +574,50 @@ def view_waitlist_position(studentid: int, classid: int, username: str, email: s
         A dictionary with a message indicating the student's position on the waitlist.
     """
     check_user(studentid, username, email)
-    '''this is the cache key which has data in the format 
+    '''this is the cache key which has data in the format waitlist{class_id}_{student_id}
     waitlist_4_33
     {
     "data":"1" //where 1 is the postion
     "last_modified:"1701836448.647673"
     }
-    
-
-
     '''
     
-    redisCacheKey = f"waitlist_{classid}_{studentid}"
+    redisCacheKey = f"waitlist_{classid}"
     cachedData = r.get(redisCacheKey)
-    print(f'Cached Data ${cachedData}')
+   
+    #print(f'Cached Data ${cachedData}')
 
     #if we find cached data lastModified is earlier that modifiedsince time we give 304
     if cachedData:
         cachedData = json.loads(cachedData)
-        print(cachedData)
-        lastModifiedTime = datetime.fromtimestamp(cachedData['last_modified'])
-        print(lastModifiedTime)
-        modifiedSince = request.headers.get('If-Modified-Since')
-        print(f'modified since ${modifiedSince}')  
-        if modifiedSince:
-            modifiedSinceTime = datetime.strptime(modifiedSince, '%a, %d %b %Y %H:%M:%S GMT')
-            print(modifiedSinceTime)
-            if lastModifiedTime <= modifiedSinceTime:
-                return Response(content=json.dumps(cachedData['data']), status_code=304)
-
-    #else we find the lastest position in waitClassID_{classid} for that student and store it in cache 
+        #print(f'Cached Data${cachedData}')
+        allStudentIds = cachedData['data']
+        #print(f"All student data${allStudentIds}")
+        student_exists = str(studentid) in allStudentIds
+        if student_exists:
+            lastModifiedTime = datetime.fromtimestamp(cachedData['last_modified'])
+            #print(f'Last Modified Time ${lastModifiedTime}')
+            modifiedSince = request.headers.get('If-Modified-Since')
+            #print(f'modified since ${modifiedSince}')  
+            if modifiedSince:
+                modifiedSinceTime = datetime.strptime(modifiedSince, '%a, %d %b %Y %H:%M:%S GMT')
+                #print(f'modified since ${modifiedSinceTime}')
+                if lastModifiedTime <= modifiedSinceTime:
+                    return Response(content=None, status_code=304)
+        else:
+            message = f"Student {studentid} is not on the waitlist for class {classid}"
+            raise HTTPException(
+                status_code=404,
+                detail=message,
+            )
+        # position = cachedWaitlist.index(str(studentid))+1  if str(studentid) in cachedWaitlist else None
+        # print(f"CachedWaitlist and position ${cachedWaitlist} ${position}")
+    
     position = r.lpos(f"waitClassID_{classid}", studentid)
 
+
     if position is not None:
-        message = f"Student {studentid} is on the waitlist for class {classid} in position {position}"
+        message = f"Student {studentid} is on the waitlist for class {classid} in position {position+1}"
     else:
         message = f"Student {studentid} is not on the waitlist for class {classid}"
         raise HTTPException(
@@ -591,10 +625,12 @@ def view_waitlist_position(studentid: int, classid: int, username: str, email: s
             detail=message,
         )
     
-    cacheValue = json.dumps({'data':position,'last_modified':datetime.utcnow().timestamp()})
-    print(f'cached Value ${cacheValue}')  
-    response = JSONResponse(content={message: position})
-    response.headers["If-Modified-Since"] = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+    byte_waitlist = r.lrange(f"waitClassID_{classid}", 0, -1)
+    waitlist = [student_id.decode('utf-8') for student_id in byte_waitlist]
+    cacheValue = json.dumps({'data':waitlist,'last_modified':datetime.utcnow().timestamp()})
+    #print(f'cached Value ${cacheValue}')  
+    response = JSONResponse(content={message:position+1})
+    response.headers["If-Modified-Since"] = (datetime.utcnow() + timedelta(seconds=1)).strftime("%a, %d %b %Y %H:%M:%S GMT")
 
     # Cache the response
     r.set(redisCacheKey, cacheValue)
@@ -615,20 +651,6 @@ def view_waitlist_position(studentid: int, classid: int, username: str, email: s
         )
     return {message: position}'''
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     
 ### Instructor related endpoints
@@ -718,6 +740,7 @@ def drop_student_administratively(instructorid: int, classid: int, studentid: in
         )
     # Retrieve the next student ID from the waitlist
     next_on_waitlist_str = r.lpop(f"waitClassID_{classid}")
+    
 
     if next_on_waitlist_str is not None:
         # Convert the retrieved string to an integer
@@ -736,6 +759,7 @@ def drop_student_administratively(instructorid: int, classid: int, studentid: in
             "class": classid
         }
         mq.basic_publish(exchange='notify', routing_key='', body=json.dumps(mq_msg))
+    update_cache_if_exists(classid,r)
     return {"message": f"Student {studentid} has been administratively dropped from class {classid} by instructor {instructorid}"}
 
 
