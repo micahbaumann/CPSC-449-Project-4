@@ -14,7 +14,7 @@ def main():
     channel = connection.channel()
 
     channel.exchange_declare(exchange='notify', exchange_type='fanout')
-
+    
     result = channel.queue_declare(queue='', exclusive=True)
     queue_name = result.method.queue
 
