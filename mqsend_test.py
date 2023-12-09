@@ -13,6 +13,6 @@ mq_msg = {
     "uid": 1,
     "class": 1
 }
-channel.basic_publish(exchange='notify', routing_key='', body=json.dumps(mq_msg))
+channel.basic_publish(exchange='notify', routing_key='', body=json.dumps(mq_msg), properties=pika.BasicProperties(priority=1))
 print(" [x] Sent 'Hello World!'")
 connection.close()
