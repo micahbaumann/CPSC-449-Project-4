@@ -15,7 +15,7 @@ def main():
 
     channel.exchange_declare(exchange='notify', exchange_type='fanout')
     
-    result = channel.queue_declare(queue='', exclusive=True)
+    result = channel.queue_declare(queue='email')
     queue_name = result.method.queue
 
     channel.queue_bind(exchange='notify', queue=queue_name)
