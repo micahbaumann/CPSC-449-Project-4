@@ -5,6 +5,7 @@
         "router": {
           "return_error_msg": true
         }
+        
       },
     "endpoints": [
             {
@@ -132,6 +133,7 @@
             {
                 "endpoint": "/student/waitlist/{classid}",
                 "method": "GET",
+                "input_headers": ["If-Modified-Since"],
                 "output_encoding": "no-op",
                 "backend": [
                 {
@@ -147,8 +149,9 @@
                         "backend/http": {
                             "return_error_details": "backend_alias"
                         }
-                    }
+                        
                 }
+            }
                 ],
                 "extra_config": {
                     "auth/validator": {
