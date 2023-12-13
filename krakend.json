@@ -532,7 +532,16 @@
                         }
                     }
                 }
-                ]
+                ],
+                "extra_config": {
+                    "auth/validator": {
+                        "alg": "RS256",
+                        "roles": ["Student"],
+                        "jwk_local_path": "./etc/public.json",
+                        "disable_jwk_security": true,
+                        "operation_debug": true
+                    }
+                }
             },
             {
                 "endpoint": "/student/unsubscribe/{studentid}/{classid}",
@@ -552,7 +561,16 @@
                         }
                     }
                 }
-                ]
+                ],
+                "extra_config": {
+                    "auth/validator": {
+                        "alg": "RS256",
+                        "roles": ["Student"],
+                        "jwk_local_path": "./etc/public.json",
+                        "disable_jwk_security": true,
+                        "operation_debug": true
+                    }
+                }
             },
             {
                 "endpoint": "/student/subscriptions/{student_id}",
@@ -572,7 +590,16 @@
                         }
                     }
                 }
-                ]
+                ],
+                "extra_config": {
+                    "auth/validator": {
+                        "alg": "RS256",
+                        "roles": ["Student"],
+                        "jwk_local_path": "./etc/public.json",
+                        "disable_jwk_security": true,
+                        "operation_debug": true
+                    }
+                }
             }
 
 
