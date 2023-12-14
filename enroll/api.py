@@ -579,7 +579,7 @@ def view_waitlist_position(studentid: int, classid: int, username: str, email: s
     
     redisCacheKey = f"waitlist_{classid}"
     cachedData = r.get(redisCacheKey)
-   
+    
     #print(f'Cached Data ${cachedData}')
 
     #if we find cached data lastModified is earlier that modifiedsince time we give 304
@@ -599,17 +599,12 @@ def view_waitlist_position(studentid: int, classid: int, username: str, email: s
                 #print(f'modified since ${modifiedSinceTime}')
                 if lastModifiedTime <= modifiedSinceTime:
                     return Response(content=None, status_code=304)
-        else:
-            message = f"Student {studentid} is not on the waitlist for class {classid}"
-            raise HTTPException(
-                status_code=404,
-                detail=message,
-            )
+        
         # position = cachedWaitlist.index(str(studentid))+1  if str(studentid) in cachedWaitlist else None
         # print(f"CachedWaitlist and position ${cachedWaitlist} ${position}")
     
     position = r.lpos(f"waitClassID_{classid}", studentid)
-
+    #print(f'position {position}')
 
     if position is not None:
         message = f"Student {studentid} is on the waitlist for class {classid} in position {position+1}"

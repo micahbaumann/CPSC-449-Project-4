@@ -5,6 +5,7 @@
         "router": {
           "return_error_msg": true
         }
+        
       },
     "endpoints": [
             {
@@ -132,6 +133,7 @@
             {
                 "endpoint": "/student/waitlist/{classid}",
                 "method": "GET",
+                "input_headers": ["If-Modified-Since"],
                 "output_encoding": "no-op",
                 "backend": [
                 {
@@ -147,8 +149,9 @@
                         "backend/http": {
                             "return_error_details": "backend_alias"
                         }
-                    }
+                        
                 }
+            }
                 ],
                 "extra_config": {
                     "auth/validator": {
@@ -532,7 +535,16 @@
                         }
                     }
                 }
-                ]
+                ],
+                "extra_config": {
+                    "auth/validator": {
+                        "alg": "RS256",
+                        "roles": ["Student"],
+                        "jwk_local_path": "./etc/public.json",
+                        "disable_jwk_security": true,
+                        "operation_debug": true
+                    }
+                }
             },
             {
                 "endpoint": "/student/unsubscribe/{studentid}/{classid}",
@@ -552,7 +564,16 @@
                         }
                     }
                 }
-                ]
+                ],
+                "extra_config": {
+                    "auth/validator": {
+                        "alg": "RS256",
+                        "roles": ["Student"],
+                        "jwk_local_path": "./etc/public.json",
+                        "disable_jwk_security": true,
+                        "operation_debug": true
+                    }
+                }
             },
             {
                 "endpoint": "/student/subscriptions/{student_id}",
@@ -572,7 +593,16 @@
                         }
                     }
                 }
-                ]
+                ],
+                "extra_config": {
+                    "auth/validator": {
+                        "alg": "RS256",
+                        "roles": ["Student"],
+                        "jwk_local_path": "./etc/public.json",
+                        "disable_jwk_security": true,
+                        "operation_debug": true
+                    }
+                }
             }
 
 
