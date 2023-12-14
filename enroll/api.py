@@ -27,6 +27,14 @@ class RabbitMQ:
     def close(self):
         self.connection.close()
 
+def get_mq():
+    rabbitmq = RabbitMQ()
+    # rabbitmq.connect()
+    try:
+        yield rabbitmq.channel
+    finally:
+        rabbitmq.close()
+
 # start dynamo db
 dynamo_db = boto3.resource('dynamodb', endpoint_url="http://localhost:5500")
 # retrieve tables
@@ -40,18 +48,6 @@ class Settings(BaseSettings, env_file="enroll/.env", extra="ignore"):
 
 def get_redis():
     yield redis.Redis()
-
-# def get_mq():
-#     with RabbitMQ as mq:
-#         yield mq
-
-def get_mq():
-    rabbitmq = RabbitMQ()
-    # rabbitmq.connect()
-    try:
-        yield rabbitmq.channel
-    finally:
-        rabbitmq.close()
 
 settings = Settings()
 app = FastAPI()
