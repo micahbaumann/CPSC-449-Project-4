@@ -29,7 +29,6 @@ class RabbitMQ:
 
 def get_mq():
     rabbitmq = RabbitMQ()
-    # rabbitmq.connect()
     try:
         yield rabbitmq.channel
     finally:
