@@ -32,12 +32,7 @@ def produce_enrollment_notification(message):
     print(f" [x] Sent {message} to consumer")
     connection.close()
 
-# Example Endpoint
-@app.get("/example/{ex}")
-def example(ex: str):
-    return []
-
-@app.get("/subscribe/{studentid}/{classid}")
+@app.post("/subscribe/{studentid}/{classid}")
 def example(studentid: int, 
             classid: int, 
             email_header : Annotated[str | None, Header(convert_underscores=False)] = "None",
@@ -60,7 +55,7 @@ def example(studentid: int,
 
     return {"message" : "Subscription succesful"}
 
-@app.get("/unsubscribe/{studentid}/{classid}")
+@app.delete("/unsubscribe/{studentid}/{classid}")
 def example(studentid: int, 
             classid: int, 
             email_header : Annotated[str | None, Header(convert_underscores=False)] = "None",
