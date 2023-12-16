@@ -514,17 +514,17 @@
                 }
             },
             {
-                "endpoint": "/student/subscribe/{studentid}/{classid}",
+                "endpoint": "/student/subscribe/{classid}",
                 "input_headers": [
                     "email_header",
                     "callback_header"
                 ],
-                "method": "GET",
+                "method": "POST",
                 "output_encoding": "no-op",
                 "backend": [
                 {
-                    "url_pattern": "/subscribe/{studentid}/{classid}",
-                    "method": "GET",
+                    "url_pattern": "/subscribe/{JWT.jti}/{classid}",
+                    "method": "POST",
                     "host": [
                         "http://localhost:5600"
                     ],
@@ -547,13 +547,13 @@
                 }
             },
             {
-                "endpoint": "/student/unsubscribe/{studentid}/{classid}",
-                "method": "GET",
+                "endpoint": "/student/unsubscribe/{classid}",
+                "method": "DELETE",
                 "output_encoding": "no-op",
                 "backend": [
                 {
-                    "url_pattern": "/unsubscribe/{studentid}/{classid}",
-                    "method": "GET",
+                    "url_pattern": "/unsubscribe/{JWT.jti}/{classid}",
+                    "method": "DELETE",
                     "host": [
                         "http://localhost:5600"
                     ],
@@ -576,12 +576,12 @@
                 }
             },
             {
-                "endpoint": "/student/subscriptions/{student_id}",
+                "endpoint": "/student/subscriptions",
                 "method": "GET",
                 "output_encoding": "no-op",
                 "backend": [
                 {
-                    "url_pattern": "/subscriptions/{student_id}",
+                    "url_pattern": "/subscriptions/{JWT.jti}",
                     "method": "GET",
                     "host": [
                         "http://localhost:5600"
